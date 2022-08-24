@@ -61,4 +61,6 @@ st.pyplot(fig=shap.plots._waterfall.waterfall_legacy(a, b, c))
 #st.pyplot(fig=shap.summary_plot(shap_values[1], features=X, max_display=10))
 
 
-
+del local_data, X
+del a, b, c
+del pipeline, model, explainer, shap_values, global_shap_values
