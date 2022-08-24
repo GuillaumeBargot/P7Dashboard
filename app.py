@@ -1,6 +1,5 @@
 # 1. Library imports
 import pandas as pd
-import logging
 import streamlit as st
 import urllib.request, json
 import joblib
