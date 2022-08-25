@@ -6,6 +6,8 @@ import joblib
 import shap
 import streamlit.components.v1 as components
 import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
 
 st.set_option('deprecation.showPyplotGlobalUse', False)
 DATA_URL = ('https://p7opencr.herokuapp.com/predict/')
@@ -16,6 +18,39 @@ X = local_data.drop('TARGET', axis=1)
 explainer = shap.TreeExplainer(model)
 shap_values = explainer.shap_values(X)
 global_shap_values = explainer(X)
+
+def is_outlier(points, thresh=3.5):
+    """
+    Returns a boolean array with True if points are outliers and False 
+    otherwise.
+
+    Parameters:
+    -----------
+        points : An numobservations by numdimensions array of observations
+        thresh : The modified z-score to use as a threshold. Observations with
+            a modified z-score (based on the median absolute deviation) greater
+            than this value will be classified as outliers.
+
+    Returns:
+    --------
+        mask : A numobservations-length boolean array.
+
+    References:
+    ----------
+        Boris Iglewicz and David Hoaglin (1993), "Volume 16: How to Detect and
+        Handle Outliers", The ASQC Basic References in Quality Control:
+        Statistical Techniques, Edward F. Mykytka, Ph.D., Editor. 
+    """
+    if len(points.shape) == 1:
+        points = points[:,None]
+    median = np.median(points, axis=0)
+    diff = np.sum((points - median)**2, axis=-1)
+    diff = np.sqrt(diff)
+    med_abs_deviation = np.median(diff)
+
+    modified_z_score = 0.6745 * diff / med_abs_deviation
+
+    return modified_z_score > thresh
 
 def st_shap(plot, height=None):
     shap_html = f"<head>{shap.getjs()}</head><body>{plot.html()}</body>"
@@ -29,6 +64,10 @@ def load_prediction(sk_id):
     return real_data
 
 client_choice = st.sidebar.selectbox("Chose your client", local_data.SK_ID_CURR)
+st.sidebar.subheader("Variable-to-variable detail")
+variable_choice = st.sidebar.selectbox("Chose your variable", local_data.columns)
+
+
 
 st.title('Prêt à dépenser - Scoring Crédit')
 
@@ -60,6 +99,22 @@ st.pyplot(fig=shap.plots._waterfall.waterfall_legacy(a, b, c))
 
 #st.pyplot(fig=shap.summary_plot(shap_values[1], features=X, max_display=10))
 
+fig, ax = plt.subplots()
+#plt.xlim(min(local_data[variable_choice]),max(local_data[variable_choice]))
+hist_data = ""
+bins = 10
+nb_unique = len(local_data[variable_choice].unique())
+if nb_unique < 10:
+    bins = nb_unique
+    hist_data = local_data[variable_choice]
+else:
+    hist_data = local_data.loc[~is_outlier(local_data[variable_choice]),variable_choice]
+ax.hist(hist_data,color = 'lightblue',edgecolor = 'black')
+xvalue = local_data.loc[local_data['SK_ID_CURR'] == client_choice, variable_choice].values
+st.text(xvalue)
+ax.axvline(x=xvalue, color='red')
+
+st.sidebar.pyplot(fig)
 
 del local_data, X
 del a, b, c
