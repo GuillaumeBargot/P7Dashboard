@@ -17,7 +17,7 @@ model = pipeline.named_steps['mdl']
 X = local_data.drop('TARGET', axis=1)
 explainer = shap.TreeExplainer(model)
 shap_values = explainer.shap_values(X)
-global_shap_values = explainer(X)
+#global_shap_values = explainer(X)
 
 def is_outlier(points, thresh=3.5):
     """
@@ -71,11 +71,7 @@ variable_choice = st.sidebar.selectbox("Chose your variable", local_data.columns
 
 st.title('Prêt à dépenser - Scoring Crédit')
 
-
-# Create a text element and let the reader know the data is loading.
-data_load_state = st.text('Loading data...')
 data = load_prediction(client_choice)
-data_load_state.text('Loading data...done!')
 
 st.subheader('Client Informations')
 st.metric("Predicted Score", str(data*100))
@@ -86,8 +82,8 @@ st.dataframe(local_data)
 #st_shap(shap.force_plot(explainer.expected_value, shap_values, X), 400)
 index = local_data.index[local_data['SK_ID_CURR'] == client_choice].tolist()[0]
 st_shap(shap.force_plot(explainer.expected_value[0], shap_values[0][index,:], features = X.iloc[index,:]))
-global_shap_values.values=global_shap_values.values[:,:,1]
-global_shap_values.base_values=global_shap_values.base_values[:,1]
+#global_shap_values.values=global_shap_values.values[:,:,1]
+#global_shap_values.base_values=global_shap_values.base_values[:,1]
 
 #st_shap(shap.plots.waterfall((global_shap_values.base_values[0], global_shap_values[0][0], X[0])))
 a = explainer.expected_value[0]
@@ -109,13 +105,18 @@ if nb_unique < 10:
     hist_data = local_data[variable_choice]
 else:
     hist_data = local_data.loc[~is_outlier(local_data[variable_choice]),variable_choice]
+
+
+#The sidebar histogram
 ax.hist(hist_data,color = 'lightblue',edgecolor = 'black')
 xvalue = local_data.loc[local_data['SK_ID_CURR'] == client_choice, variable_choice].values
-st.text(xvalue)
 ax.axvline(x=xvalue, color='red')
 
 st.sidebar.pyplot(fig)
 
+#st.text(explainer.expected_value)
+#st.text(shap_values)
+
 del local_data, X
 del a, b, c
-del pipeline, model, explainer, shap_values, global_shap_values
+del pipeline, model, explainer, shap_values
