@@ -2,7 +2,7 @@
 import pandas as pd
 import streamlit as st
 import urllib.request, json
-import joblib
+#import joblib
 import shap
 import streamlit.components.v1 as components
 import matplotlib
@@ -12,13 +12,14 @@ import numpy as np
 st.set_option('deprecation.showPyplotGlobalUse', False)
 DATA_URL = ('https://p7opencr.herokuapp.com/predict/')
 local_data = pd.read_csv('clean_data1.zip',compression='zip')
-pipeline = joblib.load('model.joblib')
-model = pipeline.named_steps['mdl']
 X = local_data.drop('TARGET', axis=1)
-explainer = shap.TreeExplainer(model)
-shap_values = explainer.shap_values(X)
-#global_shap_values = explainer(X)
 
+with open('shap_values_0.npy', 'rb') as f:
+    shap_values_0 = np.load(f)
+
+explainer_expected_value = [2.641399018192998, -2.641399018192998]
+
+@st.cache
 def is_outlier(points, thresh=3.5):
     """
     Returns a boolean array with True if points are outliers and False 
@@ -57,6 +58,7 @@ def st_shap(plot, height=None):
     components.html(shap_html, height=height)
 
 
+@st.cache
 def load_prediction(sk_id):
     with urllib.request.urlopen(DATA_URL + str(sk_id)) as url:
         data = json.loads(url.read().decode())
@@ -66,7 +68,6 @@ def load_prediction(sk_id):
 client_choice = st.sidebar.selectbox("Chose your client", local_data.SK_ID_CURR)
 st.sidebar.subheader("Variable-to-variable detail")
 variable_choice = st.sidebar.selectbox("Chose your variable", local_data.columns)
-
 
 
 st.title('Prêt à dépenser - Scoring Crédit')
@@ -81,13 +82,13 @@ st.dataframe(local_data)
 # visualize the training set predictions
 #st_shap(shap.force_plot(explainer.expected_value, shap_values, X), 400)
 index = local_data.index[local_data['SK_ID_CURR'] == client_choice].tolist()[0]
-st_shap(shap.force_plot(explainer.expected_value[0], shap_values[0][index,:], features = X.iloc[index,:]))
+st_shap(shap.force_plot(explainer_expected_value[0], shap_values_0[index,:], features = X.iloc[index,:]))
 #global_shap_values.values=global_shap_values.values[:,:,1]
 #global_shap_values.base_values=global_shap_values.base_values[:,1]
 
 #st_shap(shap.plots.waterfall((global_shap_values.base_values[0], global_shap_values[0][0], X[0])))
-a = explainer.expected_value[0]
-b = shap_values[0][index]
+a = explainer_expected_value[0]
+b = shap_values_0[index]
 c = X.iloc[index,:]
 #st_shap(shap.plots._waterfall.waterfall_legacy(a, b, c))
 # visualize the training set predictions
@@ -113,10 +114,10 @@ xvalue = local_data.loc[local_data['SK_ID_CURR'] == client_choice, variable_choi
 ax.axvline(x=xvalue, color='red')
 
 st.sidebar.pyplot(fig)
-
-#st.text(explainer.expected_value)
 #st.text(shap_values)
+
+#with open("shap_values_0.npy", 'wb') as f:
+#np.save(f, shap_values_0)
 
 del local_data, X
 del a, b, c
-del pipeline, model, explainer, shap_values
