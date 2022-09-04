@@ -72,9 +72,9 @@ def createSubheader(pred_1):
     else:
         st.markdown('<p style="color:Green;;font-size:25px;font-weight: bold;">Prêt Accepté</p>',  unsafe_allow_html=True)
 
-client_choice = st.sidebar.selectbox("Chose your client", local_data.SK_ID_CURR)
-st.sidebar.subheader("Variable-to-variable detail")
-variable_choice = st.sidebar.selectbox("Chose your variable", local_data.columns)
+client_choice = st.sidebar.selectbox("Choisissez votre client", local_data.SK_ID_CURR)
+st.sidebar.subheader("Détail par variable")
+variable_choice = st.sidebar.selectbox("Choisissez votre variable", local_data.columns)
 
 
 st.title('Prêt à dépenser - Scoring Crédit')
@@ -82,7 +82,7 @@ st.title('Prêt à dépenser - Scoring Crédit')
 data = load_prediction(client_choice)
 
 createSubheader(data[1])
-st.metric("Predicted Score", '%.2f /100' % (data[0]*100))
+st.metric("Score Prédit", '%.2f /100' % (data[0]*100))
 
 st.dataframe(local_data)
 
