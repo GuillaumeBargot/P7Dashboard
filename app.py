@@ -13,6 +13,7 @@ st.set_option('deprecation.showPyplotGlobalUse', False)
 DATA_URL = ('https://p7opencr.herokuapp.com/predict/')
 local_data = pd.read_csv('clean_data1.zip',compression='zip')
 X = local_data.drop('TARGET', axis=1)
+threshold = 0.062
 
 with open('shap_values_0.npy', 'rb') as f:
     shap_values_0 = np.load(f)
@@ -62,8 +63,14 @@ def st_shap(plot, height=None):
 def load_prediction(sk_id):
     with urllib.request.urlopen(DATA_URL + str(sk_id)) as url:
         data = json.loads(url.read().decode())
-    real_data = float(data['message'].split(' ')[0].replace('[',''))
+    real_data = (float(data['message'].split(' ')[0].replace('[','')),float(data['message'].split(' ')[1].replace(']','')))
     return real_data
+
+def createSubheader(pred_1):
+    if(pred_1>threshold):
+        st.markdown('<p style="color:Red;font-size:25px;font-weight: bold;">Prêt Refusé</p>',  unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="color:Green;;font-size:25px;font-weight: bold;">Prêt Accepté</p>',  unsafe_allow_html=True)
 
 client_choice = st.sidebar.selectbox("Chose your client", local_data.SK_ID_CURR)
 st.sidebar.subheader("Variable-to-variable detail")
@@ -74,11 +81,12 @@ st.title('Prêt à dépenser - Scoring Crédit')
 
 data = load_prediction(client_choice)
 
-st.subheader('Client Informations')
-st.metric("Predicted Score", str(data*100))
+createSubheader(data[1])
+st.metric("Predicted Score", '%.2f /100' % (data[0]*100))
 
 st.dataframe(local_data)
 
+st.subheader("Explication Locale des Features")
 # visualize the training set predictions
 #st_shap(shap.force_plot(explainer.expected_value, shap_values, X), 400)
 index = local_data.index[local_data['SK_ID_CURR'] == client_choice].tolist()[0]
@@ -93,6 +101,8 @@ c = X.iloc[index,:]
 #st_shap(shap.plots._waterfall.waterfall_legacy(a, b, c))
 # visualize the training set predictions
 st.pyplot(fig=shap.plots._waterfall.waterfall_legacy(a, b, c))
+st.subheader("Explication Globale des Features")
+st.pyplot(shap.summary_plot(shap_values_0, X))
 
 #st.pyplot(fig=shap.summary_plot(shap_values[1], features=X, max_display=10))
 
@@ -108,6 +118,8 @@ else:
     hist_data = local_data.loc[~is_outlier(local_data[variable_choice]),variable_choice]
 
 
+
+
 #The sidebar histogram
 ax.hist(hist_data,color = 'lightblue',edgecolor = 'black')
 xvalue = local_data.loc[local_data['SK_ID_CURR'] == client_choice, variable_choice].values
@@ -118,6 +130,8 @@ st.sidebar.pyplot(fig)
 
 #with open("shap_values_0.npy", 'wb') as f:
 #np.save(f, shap_values_0)
+
+
 
 del local_data, X
 del a, b, c
